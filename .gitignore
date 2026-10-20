@@ -1,0 +1,3 @@
+*.class
+server/bookstore.db
+.DS_Store
