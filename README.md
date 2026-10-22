@@ -13,19 +13,21 @@ make server     # start the server on port 8888
 
 ## Use a client
 
-In another terminal:
+In another terminal, start a client and type commands until `quit` (or Ctrl-D):
 
 ```bash
-python3 client/client.py localhost search college life
-python3 client/client.py localhost lookup 12365
-python3 client/client.py localhost buy 12365
+python3 client/client.py localhost
+> search college life
+> lookup 12365
+> buy 12365
+> quit
 ```
 
-The Java and Go clients take the same arguments:
+The Java and Go clients work the same way:
 
 ```bash
-make client ARGS="localhost search college life"
-make goclient ARGS="localhost search college life"
+make client ARGS="localhost"
+make goclient ARGS="localhost"
 ```
 
 Book IDs: 53477, 53573 (Distributed systems), 12365, 12498 (College life).

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,9 +10,10 @@ import (
 	"github.com/kolo/xmlrpc"
 )
 
-// usage: go run . <server> search <topic>
-//        go run . <server> lookup <item>
-//        go run . <server> buy <item>
+// usage: go run . <server>
+// then type commands until quit (or Ctrl-D)
+
+const usage = "commands: search <topic> | lookup <item> | buy <item> | quit"
 
 type Book struct {
 	ID    int     `xmlrpc:"id"`
@@ -22,20 +24,52 @@ type Book struct {
 }
 
 func main() {
-	if len(os.Args) < 4 {
-		fmt.Println("usage: go run . <server> search|lookup|buy <topic or item>")
+	if len(os.Args) != 2 {
+		fmt.Println("usage: go run . <server>")
 		os.Exit(1)
 	}
 
 	server, err := xmlrpc.NewClient("http://"+os.Args[1]+":8888", nil)
-	check(err)
-	command := os.Args[2]
+	if err != nil {
+		fmt.Println("Client error:", err)
+		os.Exit(1)
+	}
 
-	switch command {
+	fmt.Println(usage)
+	in := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("> ")
+		if !in.Scan() {
+			break
+		}
+		words := strings.Fields(in.Text())
+		if len(words) == 0 {
+			continue
+		}
+		if words[0] == "quit" {
+			break
+		}
+		if len(words) < 2 {
+			fmt.Println(usage)
+			continue
+		}
+
+		// an error (bad number, server down) ends this command, not the client
+		if err := run(server, words); err != nil {
+			fmt.Println("Client error:", err)
+		}
+	}
+}
+
+// run does one command, e.g. ["lookup", "12365"]
+func run(server *xmlrpc.Client, words []string) error {
+	switch words[0] {
 	case "search":
-		topic := strings.Join(os.Args[3:], " ")
+		topic := strings.Join(words[1:], " ")
 		var books []Book
-		check(server.Call("store.search", topic, &books))
+		if err := server.Call("store.search", topic, &books); err != nil {
+			return err
+		}
 		if len(books) == 0 {
 			fmt.Println("no books for topic:", topic)
 		}
@@ -44,8 +78,14 @@ func main() {
 		}
 
 	case "lookup":
+		id, err := item(words[1])
+		if err != nil {
+			return err
+		}
 		var book Book
-		check(server.Call("store.lookup", item(), &book))
+		if err := server.Call("store.lookup", id, &book); err != nil {
+			return err
+		}
 		// the server sends an empty struct if the item doesn't exist
 		if book.ID == 0 {
 			fmt.Println("no such item")
@@ -61,8 +101,14 @@ func main() {
 		}
 
 	case "buy":
+		id, err := item(words[1])
+		if err != nil {
+			return err
+		}
 		var bought bool
-		check(server.Call("store.buy", item(), &bought))
+		if err := server.Call("store.buy", id, &bought); err != nil {
+			return err
+		}
 		if bought {
 			fmt.Println("purchase complete")
 		} else {
@@ -70,22 +116,15 @@ func main() {
 		}
 
 	default:
-		fmt.Println("unknown command:", command)
+		fmt.Println("unknown command:", words[0])
 	}
+	return nil
 }
 
-func item() int {
-	id, err := strconv.Atoi(os.Args[3])
+func item(word string) (int, error) {
+	id, err := strconv.Atoi(word)
 	if err != nil {
-		fmt.Println("item must be a number:", os.Args[3])
-		os.Exit(1)
+		return 0, fmt.Errorf("item must be a number: %s", word)
 	}
-	return id
-}
-
-func check(err error) {
-	if err != nil {
-		fmt.Println("Client error:", err)
-		os.Exit(1)
-	}
+	return id, nil
 }
