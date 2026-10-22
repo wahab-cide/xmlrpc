@@ -1,5 +1,8 @@
 # Server runs from server/, so bookstore.db lives in server/
 
+# clients connect here; override with: make client SERVER=<host>
+SERVER = localhost
+
 build:
 	cd server && javac -cp ".:../lib/*" *.java
 	cd client && javac -cp ".:../lib/*" *.java
@@ -10,13 +13,11 @@ migrate: build
 server: build
 	cd server && java -cp ".:../lib/*" BookstoreServer
 
-# make client ARGS="localhost search college life"
 client: build
-	cd client && java -cp ".:../lib/*" Client $(ARGS)
+	cd client && java -cp ".:../lib/*" Client $(SERVER)
 
-# make goclient ARGS="localhost search college life"
 goclient:
-	cd client && go run . $(ARGS)
+	cd client && go run . $(SERVER)
 
 clean:
 	rm -f server/*.class client/*.class

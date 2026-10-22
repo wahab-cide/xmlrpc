@@ -26,9 +26,11 @@ python3 client/client.py localhost
 The Java and Go clients work the same way:
 
 ```bash
-make client ARGS="localhost"
-make goclient ARGS="localhost"
+make client
+make goclient
 ```
+
+They connect to localhost. For another machine, add `SERVER=<host>`.
 
 Book IDs: 53477, 53573 (Distributed systems), 12365, 12498 (College life).
 
